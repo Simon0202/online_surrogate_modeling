@@ -4,6 +4,7 @@ import seaborn as sns
 import time
 from skopt.learning import GaussianProcessRegressor
 
+from Surrogates.connector import runModelGetLastPeriod
 from Surrogates.functions import *
 from Surrogates.islands import evaluate_islands_on_set
 from Surrogates.samplers import get_sobol_samples, get_unirand_samples
@@ -30,6 +31,14 @@ islands_exploration_range = np.array([
     (0.0, 1.0),  # pi
     (0.0, 1.0)])  # eps
 
+gol_exp_range = np.array([
+    (0, 500)
+])
+
+GOLInputs = {
+    "gridSize": (0, 500)
+}
+
 param_dims = islands_exploration_range.shape[0]  # returns number of params to explore
 
 load_data = False
@@ -41,11 +50,13 @@ if load_data:  # This is only for the budget = 500 setting
     y_test = pd.read_csv('Surrogates/InputData/y_oos.csv', index_col=0).values
 else:
     start = time.time()
-
     # Generate Sobol samples for training set
     n_dimensions = islands_exploration_range.shape[0]
     evaluated_set_X_batch = get_sobol_samples(n_dimensions, budget, islands_exploration_range)
     evaluated_set_y_batch = evaluate_islands_on_set(evaluated_set_X_batch)
+
+    result = runModelGetLastPeriod("Game of Life", 100, {"gridSize": 300, "x": 100})
+
 
     print("Finished Evaluation on Islands")
     print("Running next step...")
@@ -68,7 +79,7 @@ else:
     print("Running next step...")
 
     # Evaluate the test set for the ABM response
-    y_test = evaluate_islands_on_set(oos_set)
+    y_test =  evaluate_islands_on_set(oos_set)
 
     pd.DataFrame(oos_set).to_csv("Surrogates/Data/X_oos.csv")
     pd.DataFrame(y_test).to_csv("Surrogates/Data/y_oos.csv")
